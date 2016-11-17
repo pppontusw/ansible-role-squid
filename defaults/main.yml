@@ -1,0 +1,50 @@
+#squid_acl_localnet: [] # defines local subnets to allow (don't use this together with whitelist or blacklist)
+#  - 10.0.0.0/8
+#  - 172.16.0.0/16
+#  - 192.168.0.0/16
+
+squid_http_port: 3128  # set squid http port
+
+squid_transparent_proxy: false  #defines if squid should be set up in transparent mode
+
+#squid_cache_peers:
+#  - 10.0.0.2
+
+#squid_icp_port: 3130
+
+#http_proxy_wpad: |
+# function FindProxyForURL(url, host) {
+# 
+#  if (isPlainHostName(host)) 
+#    return "DIRECT";
+#  
+#  if (url.substring(0, 4)=="ftp:")
+#    return "DIRECT";
+# 
+#  if (isInNet(dnsResolve(host), "10.0.0.0", "255.0.0.0") ||
+#  isInNet(dnsResolve(host), "172.16.0.0",  "255.240.0.0") ||
+#  isInNet(dnsResolve(host), "192.168.0.0",  "255.255.0.0") ||
+#  isInNet(dnsResolve(host), "127.0.0.0", "255.255.255.0"))
+#    return "DIRECT";
+#  
+#  return "PROXY HOSTNAME:PORT";
+# }
+
+nginx_group: "{{nginx_user}}"
+
+# hosts to prevent from connecting to wpad
+#block_wpad_hosts:
+  #-
+
+# hosts to allow connecting to wpad (this makes it so only these hosts/networks can connect)
+#allow_wpad_hosts:
+  #-
+
+# use destination blacklist
+#squid_dst_blacklist: |
+# .google.com
+
+# use destination whitelist
+#squid_dst_whitelist: |
+# .debian.se
+# .debian.com

@@ -1,0 +1,145 @@
+---
+- name: include OS-specific variables
+  include_vars: "{{ ansible_distribution }}.yml"
+  tags: 
+    - nginx
+    - wpad
+  
+- include: "{{ ansible_os_family }}.yml"
+
+- name: copy squid configuration
+  template:
+    src: "../templates/{{ item }}.j2"
+    dest: "{{squid_path}}/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - squid.conf
+  notify:
+    - restart squid
+
+- name: copy dst_whitelist
+  copy:
+    content: "{{squid_dst_whitelist}}"
+    dest: "{{squid_path}}/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - whitelist
+  notify:
+    - restart squid
+  when: squid_dst_whitelist is defined
+
+- name: copy dst_blacklist
+  copy:
+    content: "{{squid_dst_blacklist}}"
+    dest: "{{squid_path}}/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - blacklist
+  notify:
+    - restart squid
+  when: squid_dst_blacklist is defined
+
+- name: ensure service is enabled and started
+  service: 
+    name: "{{squid_process_name}}"
+    state: started 
+    enabled: yes
+
+- name: set up wpad folder
+  file:
+    path: /var/www/wpad
+    state: directory
+  notify: 
+    - restart nginx
+  when: http_proxy_wpad is defined
+  tags: 
+    - nginx
+    - wpad
+
+- name: set up wpad file
+  copy:
+    content: "{{http_proxy_wpad}}"
+    dest: /var/www/wpad/wpad.dat
+  notify: 
+    - restart nginx
+  when: http_proxy_wpad is defined
+  tags: 
+    - nginx
+    - wpad
+
+- name: symlink to proxy.pac
+  file:
+    src: /var/www/wpad/wpad.dat
+    dest: /var/www/wpad/proxy.pac
+    state: link
+  notify: 
+    - restart nginx
+  when: http_proxy_wpad is defined
+  tags: 
+    - nginx
+    - wpad
+
+- name: set up nginx conf
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+  notify: 
+    - restart nginx
+  when: http_proxy_wpad is defined
+  tags: 
+    - nginx
+    - wpad
+
+- name: virtualsite
+  template: 
+    src: virtualsite.j2
+    dest: "{{nginx_path}}"
+  notify:
+    - restart nginx
+  when: http_proxy_wpad is defined
+  tags: 
+    - nginx
+    - wpad
+
+- name: mimetypes
+  lineinfile: 
+    dest: /etc/nginx/mime.types
+    regexp: "^    application/x-ns-proxy-autoconfig     dat;$"
+    line: "    application/x-ns-proxy-autoconfig     dat;"
+    insertafter: "^types {$"
+  notify:
+    - restart nginx
+  when: http_proxy_wpad is defined
+  tags: 
+    - nginx
+    - wpad
+
+- name: mimetypes
+  lineinfile: 
+    dest: /etc/nginx/mime.types
+    regexp: "^    application/x-ns-proxy-autoconfig     pac;$"
+    line: "    application/x-ns-proxy-autoconfig     pac;"
+    insertafter: "^    application/x-ns-proxy-autoconfig     dat;$"
+  notify:
+    - restart nginx
+  when: http_proxy_wpad is defined
+  tags: 
+    - nginx
+    - wpad
+
+
+- name: ensure service is enabled and started
+  service: 
+    name: nginx
+    state: started 
+    enabled: yes
+  when: http_proxy_wpad is defined
+  tags: 
+    - nginx
+    - wpad

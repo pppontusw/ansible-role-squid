@@ -1,0 +1,70 @@
+- name: install EPEL repo
+  yum:
+    name: "{{ epel_repo_url }}"
+    state: present
+  register: result
+  until: '"failed" not in result'
+  retries: 5
+  delay: 10
+
+- name: import EPEL key
+  rpm_key:
+    key: "{{ epel_repo_gpg_key_url }}"
+    state: present
+
+- name: install squid
+  yum: name={{squid_pkg_name}} state=present enablerepo=epel
+
+- name: install nginx
+  yum: name=nginx state=present
+  when: http_proxy_wpad is defined
+
+- name: remove setroubleshoot-server due because of annoying 100% cpu use trying to audit killall5
+  yum: name=setroubleshoot-server state=absent
+
+- name: enable firewalld service
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+  tags: firewalld
+
+- name: configure firewalld for squid
+  firewalld: "port={{squid_http_port}}/tcp permanent=true state=enabled"
+  notify: 
+    - restart firewalld
+
+- name: configure firewalld for wpad
+  firewalld: "port=80/tcp permanent=true state=enabled"
+  notify: 
+    - restart firewalld
+  when: http_proxy_wpad is defined and (block_wpad_hosts is not defined or allow_wpad_hosts is not defined)
+
+- name: configure firewalld for wpad
+  firewalld: "port=80/tcp permanent=true state=disabled"
+  notify: 
+    - restart firewalld
+  when: http_proxy_wpad is defined and allow_wpad_hosts is defined
+
+- name: configure firewalld to prevent clients from hitting wpad
+  firewalld: rich_rule='rule family="ipv4" service name="http" source address="{{item}}" reject' state=enabled permanent=true
+  notify: 
+    - restart firewalld
+  with_items: "{{block_wpad_hosts|default([])}}"
+  when: http_proxy_wpad is defined and block_wpad_hosts is defined
+
+- name: configure firewalld to allow clients to hit wpad
+  firewalld: rich_rule='rule family="ipv4" service name="http" source address="{{item}}" accept' state=enabled permanent=true
+  notify: 
+    - restart firewalld
+  with_items: "{{allow_wpad_hosts|default([])}}"
+  when: http_proxy_wpad is defined and allow_wpad_hosts is defined
+
+- name: configure firewalld for ICP
+  firewalld: "port={{squid_icp_port}}/{{item}} permanent=true state=enabled"
+  notify: 
+    - restart firewalld
+  with_items:
+    - tcp
+    - udp
+  when: squid_icp_port is defined

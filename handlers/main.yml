@@ -1,0 +1,11 @@
+- name: restart squid
+  service: "name={{ squid_process_name }} state=restarted"
+
+- name: restart firewalld
+  service:
+    name: firewalld
+    state: restarted
+
+- name: restart nginx
+  service: "name=nginx state=restarted"
+  become: yes

@@ -1,0 +1,12 @@
+#example-strict-playbook.yml
+# sets up a strict proxy with whitelists and blacklists from the templates/default folder
+- name: Squid (strict)
+  hosts: http-proxy-strict
+  become: true
+  vars:
+    - squid_dst_whitelist: |
+     .google.com
+    - squid_acl_blacklist: |
+     .facebook.com
+  roles:
+    - http-proxy

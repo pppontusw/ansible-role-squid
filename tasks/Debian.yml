@@ -1,0 +1,6 @@
+- name: install squid
+  apt: name={{squid_pkg_name}} state=present
+
+- name: install nginx
+  apt: name=nginx state=present
+  when: http_proxy_wpad is defined

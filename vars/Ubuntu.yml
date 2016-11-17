@@ -1,0 +1,7 @@
+---
+squid_path: /etc/squid3
+squid_process_name: squid3
+squid_pkg_name: squid
+
+nginx_path: /etc/nginx/sites-enabled/default
+nginx_user: www-data
